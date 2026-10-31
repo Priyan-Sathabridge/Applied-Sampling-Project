@@ -2,20 +2,20 @@
 
 A region-stratified survey of 10,000 **simulated** contestants, with SRSWOR as a benchmark. The primary outcome is mean winnings in USD; the secondary outcome is the proportion below the regional board's opening expected value.
 
-## Files to submit
+## Files
 
-- `report.pdf`: shortened report, questionnaire and blank AI declaration.
+All project files are in the `R Code/` folder of this repository.
+
+- `report.pdf`: report, questionnaire and AI declaration.
 - `report.Rmd`: editable report source.
 - `data/population.csv`: complete finite population (10,000 rows).
 - `data/sample.csv`: all 2,670 stratified selections, including nonrespondents.
 - `data/sample_srswor.csv`: all 2,670 benchmark selections.
 - R scripts, this README, and generated results in `output/` and `figures/`.
 
-Complete Appendix C in `report.Rmd` and rerender before submission. Confirm the displayed author name and add a student number if required by your submission system. The brief also asks for a GitHub page: this README is ready for a repository, but no repository or public page has been created or published.
-
 ## Reproduce
 
-Open `R Code.Rproj`, or open a terminal in this folder. Required packages are `survey`, `ggplot2`, `scales`, `knitr`, and `rmarkdown`. Install missing packages explicitly, for example:
+Open `R Code/R Code.Rproj` in RStudio, or open a terminal in the `R Code/` folder. Required packages are `survey`, `ggplot2`, `scales`, `knitr`, and `rmarkdown`. Install missing packages explicitly, for example:
 
 ```r
 install.packages(c("survey", "ggplot2", "scales", "knitr", "rmarkdown"))

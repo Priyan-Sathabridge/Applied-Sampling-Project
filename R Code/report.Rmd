@@ -1,7 +1,7 @@
 ---
 title: "Deal or No Deal: A Stratified Survey of Simulated Winnings"
 subtitle: "STAT4102 Applied Sampling Mini-Project"
-author: "Priyan"
+author: "Priyan Sathabridge (2457076)"
 date: "October 2026"
 output:
   pdf_document:
@@ -14,7 +14,7 @@ header-includes:
   - \usepackage{float}
   - \usepackage{booktabs}
   - \usepackage{longtable}
-  - \usepackage{needspace}
+  - \floatplacement{table}{H}
   - \hyphenation{SRSWOR}
 ---
 
@@ -29,25 +29,29 @@ b <- read.csv("output/B_allocation.csv")
 sens <- read.csv("output/B_sensitivity.csv")
 w <- read.csv("output/D_weights.csv")
 naive <- read.csv("output/D_naive_vs_design.csv")
+psens <- read.csv("output/B_proportion_sensitivity.csv")
 num <- function(x, digits=0) formatC(x, format="f", digits=digits, big.mark=",")
-tab <- function(x, ...) knitr::kable(x, row.names=FALSE, booktabs=TRUE, ...)
+# LaTeX tables: kept with their text, numbers right-aligned, no row gaps
+tab <- function(x, ..., escape=TRUE) knitr::kable(x, format="latex",
+  row.names=FALSE, booktabs=TRUE, linesep="", escape=escape,
+  align=c("l", rep("r", ncol(x)-1)), ...)
 ```
 
 ## Abstract
 
-This study evaluates a stratified probability survey of a fixed population of 10,000 simulated *Deal or No Deal* contestants. The primary objective is to estimate mean winnings in US dollars with a 95% confidence-interval half-width no greater than 5% of its baseline value. Region-based Neyman allocation is compared with simple random sampling without replacement (SRSWOR). Allowing for 90% response, 2,670 contestants were selected and 2,391 responded. The weighted mean was \$67,453 (95% CI: \$64,111--\$70,795), compared with the true mean of \$67,430, and met the precision target. Across 1,000 repetitions per design, stratification reduced the mean's empirical variance by 32%, with coverage compatible with 95%. However, it increased the variance of the secondary proportion below opening expected value by 67%. The results demonstrate the value of stratification and weighting for the primary outcome, while showing that allocation gains are outcome-specific and that planned precision does not guarantee the precision of every realised sample.
+This study evaluates a stratified probability survey of a fixed population of 10,000 simulated *Deal or No Deal* contestants. The primary objective is to estimate mean winnings in US dollars with a 95% confidence-interval half-width no greater than 5% of its baseline value. Region-based Neyman allocation is compared with simple random sampling without replacement (SRSWOR). Allowing for 90% response, 2,670 contestants were selected and 2,391 responded. The weighted mean was \$67,453 (95% confidence interval \$64,111--\$70,795), compared with the true mean of \$67,430; its interval met the precision target. Across 1,000 repetitions per design, stratification reduced the mean's empirical variance by 32%, with coverage compatible with 95%. However, it increased the variance of the secondary proportion below opening expected value by 67%. The results demonstrate the value of stratification and weighting for the primary outcome, while showing that allocation gains are outcome-specific and that planned precision does not guarantee the precision of every realised sample.
 
 ## 1. Introduction and literature review
 
 *Deal or No Deal* presents contestants with a sequence of choices between a guaranteed banker offer and an uncertain prize. Although the expected value of a known prize board is readily calculated, actual winnings also depend on offers and contestants' decisions. Mean winnings therefore provide a useful summary for a broadcaster's prize-budget planning, while the proportion below the opening expected value describes how frequently payouts fall below that benchmark.
 
-This study designs and evaluates a probability survey of **10,000 simulated contestants** from stylised UK, US and Australian versions of the game. It asks: what are mean winnings and the proportion below opening expected value; does region stratification improve precision relative to SRSWOR; and do the estimators show small bias and approximately 95% interval coverage over repeated sampling? All conclusions concern the constructed finite population rather than actual television contestants.
+This study designs and evaluates a probability survey of **10,000 simulated contestants** from simulated UK, US and Australian versions of the game. It asks: what are mean winnings and the proportion of contestants below opening expected value; does region stratification improve precision relative to simple random sampling without replacement (SRSWOR); and do the estimators show small bias and approximately 95% interval coverage over repeated sampling? All conclusions concern the constructed finite population rather than actual television contestants.
 
 The primary parameter is
 \[
 \bar Y=N^{-1}\sum_{i=1}^N y_i,\qquad N=10{,}000,
 \]
-where $y_i$ is contestant $i$'s winnings in USD. The secondary parameter is $P=N^{-1}\sum_i I(y_i<EV_{h(i)})$, where $EV_{h(i)}$ is the opening expected value of the contestant's regional board. Falling below this benchmark describes an outcome; it does not establish that a contestant made an irrational decision.
+where $y_i$ is contestant $i$'s winnings in US dollars (USD). The secondary parameter is $P=N^{-1}\sum_i I(y_i<EV_{h(i)})$, where $I(\cdot)$ is the indicator function, $h(i)$ is contestant $i$'s region and $EV_{h(i)}$ is the opening expected value (EV) of that region's board.
 
 Post et al. (2008) study *Deal or No Deal* as a setting for risky choice with substantial stakes. Their work motivates the behavioural setting, but the offer curve and decision parameters used here are assumptions rather than fitted estimates from that study. The present question concerns population-level payouts and survey precision, rather than the estimation of individual preferences.
 
@@ -61,18 +65,20 @@ Repeated sampling provides a way to assess those theoretical expectations. Follo
 
 The target population contains 10,000 simulated contestants: 4,000 UK, 4,000 US and 2,000 Australian. The sampling frame is a register with one record per person, including a unique identifier, region, age, gender and opening board value. It covers the whole target population, so target and sampled populations coincide. Each contestant is both the sampling unit and the observation unit reporting winnings and game details. In practice, incomplete registers could exclude eligible contestants.
 
-Each game randomly assigns the regional board's prizes to boxes, keeps one box for the contestant, and opens the others in random order. UK games use 22 prizes (GBP 0.01--250,000), opening 5 boxes and then 3 in each of five rounds. US and Australian games use 26 prizes and opening counts 6, 5, 4, 3, 2, 1, 1, 1, 1. The US maximum is USD 1 million; the Australian maximum is AUD 2 million. The Australian board and its schedule are modelling assumptions, not a verified reconstruction of a particular series.
+Each game randomly assigns the regional board's prizes to boxes, keeps one box for the contestant, and opens the others in random order. UK games use 22 prizes (British pounds, GBP 0.01--250,000), opening 5 boxes and then 3 in each of five rounds. US and Australian games use 26 prizes and opening counts 6, 5, 4, 3, 2, 1, 1, 1, 1. The US maximum is USD 1 million; the Australian maximum is 2 million Australian dollars (AUD). The Australian board and its schedule are modelling assumptions, not a verified reconstruction of a particular series.
 
-After round $r$ of $R$, the offer is $f_r$ times the mean unopened prize, where
+After round $t$ of a game with $T$ rounds, the offer is $f_t$ times the mean unopened prize, where
 \[
-f_r=\min\{[0.15+0.85((r-1)/(R-1))^{1.5}]e^{\epsilon_r},1.10\},
-\quad \epsilon_r\sim N(0,0.10^2).
+f_t=\min\{[0.15+0.85((t-1)/(T-1))^{1.5}]e^{\epsilon_t},1.10\},
+\quad \epsilon_t\sim N(0,0.10^2)
 \]
-Contestants accept the first offer at least equal to their CRRA certainty equivalent,
+is independent random variation between games. This form reproduces the qualitative pattern reported by Post et al. (2008): the banker opens with a small fraction of the expected value, which keeps contestants playing, and raises the fraction towards the expected value in the final rounds. The value 0.15 sets a low opening offer; the base fraction reaches exactly 1 at $t=T$; the power 1.5 makes the curve convex, so offers stay low for several rounds and climb steeply near the end; the noise term lets offers for the same position differ between games by roughly $\pm20\%$; and the cap of 1.10 allows occasional offers slightly above the expected value. These constants are stylised rather than estimated. They shape the simulated population only: once the population is fixed, its true mean and variances are known, so the sampling results remain valid whatever constants generated it.
+
+Each contestant then chooses between the offer and playing on for the unopened prizes. The certainty equivalent (CE) of that gamble is the guaranteed amount the contestant values exactly as much as the gamble itself. A risk-neutral contestant's CE equals the mean unopened prize; a risk-averse contestant's CE is lower, so they may accept an offer below the expected value. Preferences follow constant relative risk aversion (CRRA) utility, $u(c)=c^{1-\rho}/(1-\rho)$, or $\log c$ when $\rho=1$, applied to wealth plus prize. This standard model of risky choice summarises risk attitude in one parameter $\rho$: $\rho=0$ is risk neutral and larger values are more risk averse. Treating each unopened prize as equally likely, the CE solves $u(w+CE)=m^{-1}\sum_j u(w+x_j)$, giving
 \[
-CE=\left[m^{-1}\sum_{j=1}^m(w+x_j)^{1-\rho}\right]^{1/(1-\rho)}-w.
+CE=\left[m^{-1}\sum_{j=1}^m(w+x_j)^{1-\rho}\right]^{1/(1-\rho)}-w,
 \]
-At $\rho=1$, the certainty equivalent is $\exp\{m^{-1}\sum_j\log(w+x_j)\}-w$. If every offer is refused, the contestant receives the prize in their own box. This myopic rule ignores future offers.
+where $x_1,\dots,x_m$ are the $m$ unopened prizes and $w$ is the contestant's wealth. At $\rho=1$, the certainty equivalent is $\exp\{m^{-1}\sum_j\log(w+x_j)\}-w$. A contestant accepts the first offer that is at least equal to their CE; if every offer is refused, they receive the prize in their own box. This myopic rule ignores future offers.
 
 Age is a rounded $N(40,12^2)$ draw **clipped** to 18--75; gender is assigned Female/Male with equal probability. Risk aversion is $\max\{0,N(0.4+0.01(\mathrm{age}-40),0.3^2)\}$. Wealth is lognormal with median USD 20,000 and log-SD 0.8, converted to local currency for decisions. Fixed modelling factors of 1.27 USD/GBP and 0.66 USD/AUD convert winnings back to USD. They are not dated exchange-rate observations. The population was generated in R with seed 20261019.
 
@@ -81,22 +87,23 @@ ps <- do.call(rbind,lapply(split(pop,pop$region),function(x)
  data.frame(Region=x$region[1], N=num(nrow(x)), Share=nrow(x)/nrow(pop),
  Mean=num(mean(x$winnings_usd)), SD=num(sd(x$winnings_usd)),
  `Below EV`=num(100*mean(x$below_ev),1), check.names=FALSE)))
-tab(ps, caption="Population structure. Mean and SD are in USD; below EV is a percentage.")
+tab(ps, caption="Population structure. Mean and standard deviation (SD) are in USD; below EV is the percentage below the opening expected value.")
 ```
 
-The true values are $\bar Y=\$67{,}429.76$ and $P=0.7498$. Winnings are right-skewed: the median is \$26,624 and the SD is \$117,400. This arises from many modest payouts and relatively few large prizes.
+The true values are $\bar Y=\$67{,}429.76$ and $P=0.7498$. Winnings are right-skewed: the median is \$26,624 and the standard deviation (SD) is \$117,400. This arises from many modest payouts and relatively few large prizes.
 
-Region determines prize scale and stratum SDs differ substantially. Neyman allocation concentrates sampling where variability is greatest, improving precision under equal unit costs. Regional registers also simplify selection and contact. Proportional allocation requires 2,990 respondents for the primary target, compared with 2,401 under continuous Neyman allocation. Cluster sampling could inflate variance if contestants in the same recording series have similar outcomes; no cost evidence justifies that trade-off here.
+Region is a natural stratifier because it fixes the prize board. Stratum means range from \$28,297 (UK) to \$104,666 (US), so a large part of the variation in winnings lies between regions; stratified sampling removes this between-stratum component from the variance of the estimator. The strata are therefore externally heterogeneous, although winnings remain highly variable within each region, and stratum SDs differ substantially. Neyman allocation concentrates sampling where variability is greatest, improving precision under equal unit costs. Regional registers also simplify selection and contact. Proportional allocation requires 2,990 respondents for the primary target, compared with 2,401 under continuous Neyman allocation. Cluster sampling could inflate variance if contestants in the same recording series have similar outcomes; no cost evidence justifies that trade-off here.
 
 ### 2.2 Sample size and precision
 
-The target is a **95% confidence-interval half-width** of no more than 5% of the baseline mean: $e=0.05\bar Y=\$3{,}371.49$. Let $z=1.959964$ and $V=(e/z)^2$. Baseline means and stratum variances are treated as known prior information, as permitted by the brief. This is a planning assumption, not information obtained from the realised sample.
+The target is a **95% confidence-interval half-width** of no more than 5% of the baseline mean: $e=0.05\bar Y=\$3{,}371.49$. Let $z=1.959964$, the 97.5th percentile of the standard normal distribution, and $V=(e/z)^2$, the largest acceptable variance of the estimator. Baseline means and stratum variances are treated as known prior information, as permitted by the brief. This is a planning assumption, not information obtained from the realised sample.
 
 For SRSWOR, using the finite-population variance $S^2$ with denominator $N-1$,
 \[
-n_0=(zS/e)^2,\qquad n=\frac{n_0}{1+n_0/N}.
+n_0=(zS/e)^2,\qquad n=\frac{n_0}{1+n_0/N},
 \]
-For stratified sampling, $W_h=N_h/N$ and
+where $n_0$ is the size required before the finite population correction.
+For stratified sampling, let $N_h$, $n_h$ and $S_h^2$ be the population size, sample size and population variance of stratum $h$, with $W_h=N_h/N$. Then
 \[
 \operatorname{Var}(\bar y_{st})=\sum_h W_h^2(1-n_h/N_h)S_h^2/n_h.
 \]
@@ -107,18 +114,16 @@ n=\frac{(\sum_hN_hS_h)^2}{N^2V+\sum_hN_hS_h^2}.
 \]
 The factors $1-n_h/N_h$ are the finite population corrections. There are no clusters, so an intracluster correlation is not required. The planned design effect is the ratio of stratified to SRSWOR variance at the same respondent count; for the mean it is approximately 0.68.
 
-\needspace{8\baselineskip}
-
 ```{r allocation}
 a <- data.frame(Region=b$region, Share=b$W_h,
  `$S_h^2$ (USD$^2$)`=num(b$S_h^2),
  Respondents=num(b$n_h), Selected=num(b$n_h_final), check.names=FALSE)
-tab(a, caption="Neyman allocation, stratum variances and non-response allowance.")
+tab(a, escape=FALSE, caption="Neyman allocation, stratum variances and non-response allowance.")
 ```
 
 The continuous result rounds to 2,401 respondents; rounding **each stratum up** gives a feasible plan of **2,402**. This conservative integer allocation is not asserted to be the exact integer optimum. Assuming 90% independent response, selection counts are $\lceil n_h/0.9\rceil$, totalling **2,670**. Inflation gives the desired response count in expectation, not a guarantee. The corresponding SRSWOR requirement is 3,178 respondents, so the stratified plan reduces respondent demand by about 24%.
 
-For the secondary proportion, use $S_{ph}^2=N_hP_h(1-P_h)/(N_h-1)$. Its target is $0.05P=0.03749$. An allocation separately optimised for the proportion needs 486 respondents (488 under SRSWOR); these are **not** the allocation used for the survey. The mean-based allocation still comfortably meets this secondary precision target.
+For the secondary proportion, use $S_{ph}^2=N_hP_h(1-P_h)/(N_h-1)$, where $P_h$ is the proportion in stratum $h$. Its target is $0.05P=0.03749$. An allocation separately optimised for the proportion needs 486 respondents (488 under SRSWOR); these are **not** the allocation used for the survey. The mean-based allocation still comfortably meets this secondary precision target. Holding this half-width fixed, the SRSWOR requirement is `r psens$n_srswor[psens$P==0.1]` at $P=0.10$ or $0.90$ but `r psens$n_srswor[psens$P==0.5]` at $P=0.50$, because the variance $P(1-P)$ is largest at $P=0.5$ and symmetric about it.
 
 The unconstrained formula can imply $n_h>N_h$. The calculation caps such strata at a census and recalculates the optimum for the remaining strata. Census strata contribute zero sampling variance, while all population weights stay fixed. This constraint matters at tight precision targets, although no stratum reaches its population capacity in the final selection of 2,670 contestants.
 
@@ -128,14 +133,14 @@ The sensitivity analysis examines how the required sample size changes with the 
 knitr::include_graphics("figures/B6_n_vs_margin.png")
 ```
 
+Figure 1 shows that the required size falls steeply as the permitted half-width widens, because $n_0$ is inversely proportional to $e^2$. The stratified curve lies below the SRSWOR curve at every margin, and the absolute saving is largest at tight margins, where both designs approach the population size and the finite population correction limits further growth.
+
 ```{r sensitivity, out.width="69%", fig.cap="Four assumed means with fixed stratum sizes and SDs. Tighter absolute margins require larger samples."}
 knitr::include_graphics("figures/B7_sensitivity_mean.png")
 ```
 
 The quantities held fixed are $N=10{,}000$, $N_h$, $S_h$, 95% confidence and the capacity-constrained Neyman rule. Only the assumed mean changes; each curve uses $e=qk\bar Y$, with $k=0.25,0.50,0.75,1$ and $q$ the relative margin. Thus lower means imply smaller absolute margins, with SDs deliberately unchanged. At $q=5\%$, the required stratified sizes are **`r paste(num(sens$n_strat), collapse=", ")`**, respectively. These are respondent planning sizes before non-response inflation. Curves show continuous optima; implementable allocations require integer rounding. A smaller assumed mean therefore raises the required sample sharply: at 25% of the baseline the stratified design needs `r num(sens$n_strat[1])` respondents (about `r round(100*sens$n_strat[1]/nrow(pop))`% of $N$), against `r num(sens$n_srswor[1])` under SRSWOR. As $n$ approaches $N$, the finite population correction increasingly limits the required size, and the stratified design needs fewer respondents than SRSWOR at every assumed value.
 
-
-\newpage
 
 ### 2.3 Selection, weighting and data collection
 
@@ -145,7 +150,7 @@ The planned number of contestants is selected independently within each region u
 tab(data.frame(Region=w$region, Selected=num(w$n_h),
  `$\\pi_i$`=num(w$pi_i,4), `Design weight $d_i$`=num(w$w_design,3),
  Respondents=num(w$r_h), `Final weight $w_i$`=num(w$w_final,3), check.names=FALSE),
- caption="Selection probabilities and respondent weight adjustment.")
+ escape=FALSE, caption="Selection probabilities and respondent weight adjustment.")
 ```
 
 Independent Bernoulli response with probability 0.90 gives **2,391 responses (89.6%)**. Respondents receive $w_i=N_h/r_h$ and nonrespondents receive final weight zero. Final weights sum to each known regional count and to 10,000 overall. A UK respondent represents about 10.6 population members; a US respondent represents about 2.8. Equal weighting would overrepresent regions selected at higher rates.
@@ -165,12 +170,12 @@ Contestants would receive an online questionnaire or telephone interview through
 
 ### 3.1 Realised estimates and design comparison
 
-Design-based estimation accounts for independent individual selection, regional strata, final respondent weights and finite population corrections. Confidence intervals use a normal approximation at the 95% level. The estimators are
+Design-based estimation accounts for independent individual selection, regional strata, final respondent weights and finite population corrections. Confidence intervals (CIs) use a normal approximation at the 95% level. The estimators are
 \[
 \hat{\bar Y}_{st}=\sum_hW_h\bar y_h,\qquad
 \hat V(\hat{\bar Y}_{st})=\sum_hW_h^2(1-r_h/N_h)s_h^2/r_h.
 \]
-Replacing $y_i$ by $I(y_i<EV_{h(i)})$ estimates $P$ and its variance. The CV is SE divided by the estimate. The benchmark selects 2,670 individuals by SRSWOR, then simulates independent 90% response; 2,404 respond, with weight $N/r$ and variance $(1-r/N)s^2/r$.
+Replacing $y_i$ by $I(y_i<EV_{h(i)})$ estimates $P$ and its variance. Here $\bar y_h$ and $s_h^2$ are the respondent mean and variance in stratum $h$. The coefficient of variation (CV) is the standard error (SE) divided by the estimate. The benchmark selects 2,670 individuals by SRSWOR, then simulates independent 90% response; 2,404 respond. With $r$ respondents and respondent variance $s^2$, the weight is $N/r$ and the estimated variance is $(1-r/N)s^2/r$.
 
 ```{r mean-results}
 m <- d[d$parameter=="winnings_usd",]
@@ -184,7 +189,7 @@ tab(data.frame(Measure=c("Estimate (USD)","Estimated variance", "SE (USD)",
  num(m$deff[2],3),num(m$half_width[2]))), caption="Primary parameter: realised-sample estimates.")
 ```
 
-The stratified interval covers the true mean and its half-width of \$3,342 meets the \$3,371 target. The benchmark half-width is \$4,132 and misses the target. The naive stratified-sample mean is \$84,806, an error of \$17,376 (26%); weighting reduces the realised error to \$23. One sample's error is not itself an estimate of repeated-sampling bias.
+The stratified interval covers the true mean and its half-width of \$3,342 meets the \$3,371 target. The benchmark half-width is \$4,132 and misses the target. The naive stratified-sample mean is \$84,806, an error of \$17,376 (26%). It overstates the mean because US contestants, who have the highest winnings, make up 59% of respondents (1,405 of 2,391) but only 40% of the population; weighting reduces the realised error to \$23. One sample's error is not itself an estimate of repeated-sampling bias.
 
 ```{r proportion-results}
 a <- d[d$parameter=="below_ev",]
@@ -198,20 +203,19 @@ tab(data.frame(Measure=c("Estimate", "Estimated variance", "SE", "95% CI", "CV (
 
 Both proportion intervals cover the truth and meet the 0.03749 target. The unweighted proportion is 0.7583, versus the weighted 0.7528. Because the proportion's stratum SDs are similar, its best allocation is close to proportional; the mean-driven allocation, which heavily undersamples the UK, therefore raises its variance.
 
-The tabulated design effects compare each estimated variance with an estimated SRSWOR reference variance at the same respondent size. Ratios of variances from the two independently drawn realised samples are instead **0.654 for the mean and 1.579 for the proportion**. The latter is not the table's 1.623; the benchmark respondent counts and estimated reference variances differ.
-
-\newpage
+The tabulated design effects compare each estimated variance with an estimated SRSWOR reference variance at the same respondent size. Ratios of variances from the two independently drawn realised samples are **0.654 for the mean**, essentially the same as the table, **and 1.579 for the proportion**. The latter differs from the table's 1.623 because the benchmark's respondent count and estimated variance differ from the reference variance used by the survey package.
 
 ### 3.2 Repeated-sampling performance
 
 Selection, non-response, weighting and estimation are repeated **1,000 times per design** using the same fixed population. Every replicate retains estimates, SEs, interval limits and respondent counts.
 
-Following Morris, White and Crowther (2019), performance is assessed by bias, relative bias, empirical SE, average estimated SE, RMSE, coverage and interval width. For $R$ repetitions and truth $\theta$,
+Following Morris, White and Crowther (2019), performance is assessed by bias, relative bias, empirical SE, average estimated SE, root mean squared error (RMSE), coverage and interval width. For $B=1{,}000$ repetitions, true value $\theta$, estimate $\hat\theta_b$ in repetition $b$ and estimated coverage $\hat c$ (the share of intervals containing $\theta$),
 \[
-\widehat{\mathrm{Bias}}=R^{-1}\sum_b\hat\theta_b-\theta,\quad
-\mathrm{RMSE}=\sqrt{R^{-1}\sum_b(\hat\theta_b-\theta)^2},\quad
-\mathrm{MCSE}(\hat c)=\sqrt{\hat c(1-\hat c)/R}.
+\widehat{\mathrm{Bias}}=B^{-1}\sum_b\hat\theta_b-\theta,\quad
+\mathrm{RMSE}=\sqrt{B^{-1}\sum_b(\hat\theta_b-\theta)^2},\quad
+\mathrm{MCSE}(\hat c)=\sqrt{\hat c(1-\hat c)/B},
 \]
+where MCSE is the Monte Carlo standard error. Relative bias is bias divided by $\theta$.
 Empirical SE is the sample SD of estimates; the empirical design effect is the ratio of their variances, stratified over SRSWOR.
 
 ```{r simulation-table}
@@ -238,13 +242,11 @@ Average estimated SEs for the mean are about 2% below empirical SEs. This is a d
 
 Stratification reduces the mean's empirical variance by 32% and RMSE by 17%; its average interval is \$6,735 wide versus \$8,164 for SRSWOR. For the proportion, variance increases by 67%, demonstrating the trade-off from optimising allocation for winnings.
 
-\newpage
-
 ```{r precision-figure, out.width="60%", fig.cap="Distribution of realised primary-parameter interval half-widths over 1,000 repetitions. The dashed line marks the 5% target."}
 knitr::include_graphics("figures/E_half_width_distribution.png")
 ```
 
-The stratified design meets the mean's precision bound in **52.1%** of repetitions; the same-sized SRSWOR design meets it in none. The sample was planned using baseline variances and expected response counts. Realised response counts and estimated variances fluctuate, so satisfying the planning equation does not guarantee that every estimated interval meets the bound. The approximately one-half rate is specific to this experiment, not a universal property of sample-size formulas.
+The stratified design meets the mean's precision bound in **52.1%** of repetitions; the same-sized SRSWOR design meets it in none. The sample was planned using baseline variances and expected response counts. The planning equation sets the expected variance exactly equal to the bound, with no margin. Realised response counts and, more importantly, estimated stratum variances fluctuate around their planning values, so the estimated half-width scatters around the target and roughly half of the samples fall on either side of it. Satisfying the planning equation therefore does not guarantee that every estimated interval meets the bound. The approximately one-half rate is specific to this experiment, not a universal property of sample-size formulas.
 
 For a practical survey, planning for a tighter half-width, such as 4.5%, or a lower anticipated response rate would provide a buffer. Such choices should be evaluated against cost and desired assurance before collecting data. Both designs meet the secondary proportion's precision target in every repetition here.
 
@@ -255,8 +257,6 @@ For this finite population, mean winnings are about **\$67,400** and approximate
 The simulated outcome distribution depends on assumed prize boards, offer progression, wealth and risk aversion. The Australian high-stakes setting is intentionally stylised, and fixed currency factors restrict interpretation. The model does not estimate real contestants' behaviour or regional winnings. The age distribution is clipped at its limits rather than sampled from a truncated normal distribution.
 
 Sampling and variance calculations also assume a complete frame, equal within-region response propensities and accurate measurements. Non-response weights are valid for the simulated mechanism but would not automatically remove outcome-dependent response bias in a real survey. The normal intervals appear adequate in this large-sample experiment; this does not establish their performance for much smaller samples or other populations.
-
-\newpage
 
 ## References
 
@@ -293,6 +293,8 @@ Region, age, gender and opening expected value are frame variables. Items 4 and 
 
 Run `Rscript run_all.R` from the project folder. It executes scripts in isolated environments, checks the outputs, records `sessionInfo()` and renders this report. R packages required are `survey`, `ggplot2`, `scales`, `knitr` and `rmarkdown`; PDF rendering also requires Pandoc and XeLaTeX. Use `--no-render` to run just the analysis and checks.
 
+All code, data, outputs and the README are available in the project's GitHub repository: <https://github.com/Priyan-Sathabridge/Applied-Sampling-Project>.
+
 | File | Role / seed |
 |:---|:---|
 | `01_simulate_population.R` | Generate population; 20261019 |
@@ -308,24 +310,12 @@ Estimation uses the R *survey* package (Lumley, 2004), with regional strata, res
 
 The `data/` folder contains the full population and both selected samples. The `output/` folder contains planning tables, estimates, replicate results, performance summaries and software versions. The README provides run instructions and a field dictionary.
 
-\newpage
 
 ## Appendix C: Declaration of generative AI use
 
-**To be completed by the author before submission.**
+Tools used: Claude.
 
-\vspace{1cm}
+Parts of the project for which AI was used: Simulation design and code. Error and bug checking. Grammar and spell check. Text generation and formatting. 
 
-Tools used:
+How the work was reviewed and verified: All code was checked against known theory and academic literature. The validate.R script performs integrity checks; closed-form estimators checked against the survey package; reported numbers independently recomputed from the data; all text reviewed and edited by the author.
 
-\vspace{2cm}
-
-Parts of the project for which AI was used:
-
-\vspace{2cm}
-
-How the work was reviewed and verified:
-
-\vspace{2cm}
-
-Author's final declaration:

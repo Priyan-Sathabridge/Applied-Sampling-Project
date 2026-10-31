@@ -14,6 +14,8 @@ header-includes:
   - \usepackage{float}
   - \usepackage{booktabs}
   - \usepackage{longtable}
+  - \usepackage{needspace}
+  - \hyphenation{SRSWOR}
 ---
 
 ```{r setup, include=FALSE}
@@ -66,17 +68,17 @@ After round $r$ of $R$, the offer is $f_r$ times the mean unopened prize, where
 f_r=\min\{[0.15+0.85((r-1)/(R-1))^{1.5}]e^{\epsilon_r},1.10\},
 \quad \epsilon_r\sim N(0,0.10^2).
 \]
-Contestants accept the first offer exceeding their CRRA certainty equivalent,
+Contestants accept the first offer at least equal to their CRRA certainty equivalent,
 \[
 CE=\left[m^{-1}\sum_{j=1}^m(w+x_j)^{1-\rho}\right]^{1/(1-\rho)}-w.
 \]
-At $\rho=1$, the certainty equivalent is $\exp\{m^{-1}\sum_j\log(w+x_j)\}-w$. Otherwise, refusal of every offer yields the contestant's own prize. This myopic rule ignores future offers.
+At $\rho=1$, the certainty equivalent is $\exp\{m^{-1}\sum_j\log(w+x_j)\}-w$. If every offer is refused, the contestant receives the prize in their own box. This myopic rule ignores future offers.
 
-Age is a rounded $N(40,12^2)$ draw **clipped** to 18--75; gender is assigned Female/Male with equal probability. Risk aversion is $\max\{0,N(0.4+0.01(\mathrm{age}-40),0.3^2)\}$. Wealth is lognormal with median USD 20,000 and log-SD 0.8, converted to local currency for decisions. Fixed modelling factors of 1.27 USD/GBP and 0.66 USD/AUD convert winnings back to USD. They are not dated exchange-rate observations.
+Age is a rounded $N(40,12^2)$ draw **clipped** to 18--75; gender is assigned Female/Male with equal probability. Risk aversion is $\max\{0,N(0.4+0.01(\mathrm{age}-40),0.3^2)\}$. Wealth is lognormal with median USD 20,000 and log-SD 0.8, converted to local currency for decisions. Fixed modelling factors of 1.27 USD/GBP and 0.66 USD/AUD convert winnings back to USD. They are not dated exchange-rate observations. The population was generated in R with seed 20261019.
 
 ```{r population-summary}
 ps <- do.call(rbind,lapply(split(pop,pop$region),function(x)
- data.frame(Region=x$region[1], N=nrow(x), Share=nrow(x)/nrow(pop),
+ data.frame(Region=x$region[1], N=num(nrow(x)), Share=nrow(x)/nrow(pop),
  Mean=num(mean(x$winnings_usd)), SD=num(sd(x$winnings_usd)),
  `Below EV`=num(100*mean(x$below_ev),1), check.names=FALSE)))
 tab(ps, caption="Population structure. Mean and SD are in USD; below EV is a percentage.")
@@ -105,10 +107,12 @@ n=\frac{(\sum_hN_hS_h)^2}{N^2V+\sum_hN_hS_h^2}.
 \]
 The factors $1-n_h/N_h$ are the finite population corrections. There are no clusters, so an intracluster correlation is not required. The planned design effect is the ratio of stratified to SRSWOR variance at the same respondent count; for the mean it is approximately 0.68.
 
+\needspace{8\baselineskip}
+
 ```{r allocation}
-a <- data.frame(Region=b$region, `Population share`=b$W_h,
- `Variance (USD squared)`=num(b$S_h^2),
- Respondents=b$n_h, Selected=b$n_h_final, check.names=FALSE)
+a <- data.frame(Region=b$region, Share=b$W_h,
+ `$S_h^2$ (USD$^2$)`=num(b$S_h^2),
+ Respondents=num(b$n_h), Selected=num(b$n_h_final), check.names=FALSE)
 tab(a, caption="Neyman allocation, stratum variances and non-response allowance.")
 ```
 
@@ -128,7 +132,7 @@ knitr::include_graphics("figures/B6_n_vs_margin.png")
 knitr::include_graphics("figures/B7_sensitivity_mean.png")
 ```
 
-The quantities held fixed are $N=10,000$, $N_h$, $S_h$, 95% confidence and the capacity-constrained Neyman rule. Only the assumed mean changes; each curve uses $e=qk\bar Y$, with $k=0.25,0.50,0.75,1$ and $q$ the relative margin. Thus lower means imply smaller absolute margins, with SDs deliberately unchanged. At $q=5\%$, the required stratified sizes are **`r paste(num(sens$n_strat), collapse=", ")`**, respectively. These are respondent planning sizes before non-response inflation. Curves show continuous optima; implementable allocations require integer rounding.
+The quantities held fixed are $N=10{,}000$, $N_h$, $S_h$, 95% confidence and the capacity-constrained Neyman rule. Only the assumed mean changes; each curve uses $e=qk\bar Y$, with $k=0.25,0.50,0.75,1$ and $q$ the relative margin. Thus lower means imply smaller absolute margins, with SDs deliberately unchanged. At $q=5\%$, the required stratified sizes are **`r paste(num(sens$n_strat), collapse=", ")`**, respectively. These are respondent planning sizes before non-response inflation. Curves show continuous optima; implementable allocations require integer rounding. A smaller assumed mean therefore raises the required sample sharply: at 25% of the baseline the stratified design needs `r num(sens$n_strat[1])` respondents (about `r round(100*sens$n_strat[1]/nrow(pop))`% of $N$), against `r num(sens$n_srswor[1])` under SRSWOR. As $n$ approaches $N$, the finite population correction increasingly limits the required size, and the stratified design needs fewer respondents than SRSWOR at every assumed value.
 
 
 \newpage
@@ -138,9 +142,9 @@ The quantities held fixed are $N=10,000$, $N_h$, $S_h$, 95% confidence and the c
 The planned number of contestants is selected independently within each region using SRSWOR. Every population member has a known positive selection probability $\pi_i=n_h/N_h$, with design weight $d_i=1/\pi_i$. Here $n_h$ denotes selected contestants; the realised responding count is $r_h$.
 
 ```{r weights}
-tab(data.frame(Region=w$region, Selected=w$n_h,
- `Inclusion probability`=num(w$pi_i,4), `Design weight`=num(w$w_design,3),
- Respondents=w$r_h, `Final weight`=num(w$w_final,3), check.names=FALSE),
+tab(data.frame(Region=w$region, Selected=num(w$n_h),
+ `$\\pi_i$`=num(w$pi_i,4), `Design weight $d_i$`=num(w$w_design,3),
+ Respondents=num(w$r_h), `Final weight $w_i$`=num(w$w_final,3), check.names=FALSE),
  caption="Selection probabilities and respondent weight adjustment.")
 ```
 
@@ -166,7 +170,7 @@ Design-based estimation accounts for independent individual selection, regional 
 \hat{\bar Y}_{st}=\sum_hW_h\bar y_h,\qquad
 \hat V(\hat{\bar Y}_{st})=\sum_hW_h^2(1-r_h/N_h)s_h^2/r_h.
 \]
-Replacing $y_i$ by $I(y_i<EV_{h(i)})$ estimates $P$ and its variance. The CV is SE divided by the estimate. The benchmark selects the same 2,670 individuals in total by SRSWOR, then simulates independent 90% response; 2,404 respond, with weight $N/r$ and variance $(1-r/N)s^2/r$.
+Replacing $y_i$ by $I(y_i<EV_{h(i)})$ estimates $P$ and its variance. The CV is SE divided by the estimate. The benchmark selects 2,670 individuals by SRSWOR, then simulates independent 90% response; 2,404 respond, with weight $N/r$ and variance $(1-r/N)s^2/r$.
 
 ```{r mean-results}
 m <- d[d$parameter=="winnings_usd",]
@@ -192,7 +196,7 @@ tab(data.frame(Measure=c("Estimate", "Estimated variance", "SE", "95% CI", "CV (
  caption="Secondary proportion; true value 0.7498.")
 ```
 
-Both proportion intervals cover the truth and meet the 0.03749 target. The unweighted proportion is 0.7583, versus the weighted 0.7528. Regional proportions differ less than regional means, so mean-optimised allocation sacrifices precision for this outcome.
+Both proportion intervals cover the truth and meet the 0.03749 target. The unweighted proportion is 0.7583, versus the weighted 0.7528. Because the proportion's stratum SDs are similar, its best allocation is close to proportional; the mean-driven allocation, which heavily undersamples the UK, therefore raises its variance.
 
 The tabulated design effects compare each estimated variance with an estimated SRSWOR reference variance at the same respondent size. Ratios of variances from the two independently drawn realised samples are instead **0.654 for the mean and 1.579 for the proportion**. The latter is not the table's 1.623; the benchmark respondent counts and estimated reference variances differ.
 
@@ -246,7 +250,7 @@ For a practical survey, planning for a tighter half-width, such as 4.5%, or a lo
 
 ## 4. Conclusion
 
-For this finite population, mean winnings are about **\$67,400** and approximately **75%** win below opening expected value. Neyman allocation reduces the mean's required respondents by 24% and empirical variance by 32%, while sacrificing precision for the proportion. Weighting is essential. Bias and coverage results support the design under the stated assumptions; practical planning should allow a buffer beyond the nominal precision target.
+For this finite population, mean winnings are about **\$67,400** and approximately **75%** win less than their board's opening expected value. Neyman allocation reduces the mean's required respondents by 24% and empirical variance by 32%, while sacrificing precision for the proportion. Weighting is essential. Bias and coverage results support the design under the stated assumptions; practical planning should allow a buffer beyond the nominal precision target.
 
 The simulated outcome distribution depends on assumed prize boards, offer progression, wealth and risk aversion. The Australian high-stakes setting is intentionally stylised, and fixed currency factors restrict interpretation. The model does not estimate real contestants' behaviour or regional winnings. The age distribution is clipped at its limits rather than sampled from a truncated normal distribution.
 
